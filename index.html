@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UWqk+cz+FZp4qLkytGVJDpbCxOVcMrYAIXUBZd4i/d4='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>ПлатилЛи — пеня по госконтракту за 10 секунд</title>
+<meta name="description" content="Заказчик по 44-ФЗ не заплатил в срок? ПлатилЛи посчитает срок оплаты по производственному календарю, пеню по 1/300 ключевой ставки и подготовит претензию.">
+<meta property="og:title" content="ПлатилЛи — контроль оплаты госконтрактов">
+<meta property="og:description" content="Срок оплаты, просрочка и пеня по 44-ФЗ за 10 секунд. Первая претензия — бесплатно.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#101D32">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23101D32'/%3E%3Cg transform='translate(4 4)' fill='none' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M14 2.75H7A2.25 2.25 0 0 0 4.75 5v14A2.25 2.25 0 0 0 7 21.25h10A2.25 2.25 0 0 0 19.25 19V8L14 2.75Z' stroke='%23fff'/%3E%3Cpath d='M14 2.75V6.5A1.5 1.5 0 0 0 15.5 8h3.75' stroke='%23fff'/%3E%3Cpath d='M8.25 9.25h3.5M8.25 12.5h7.5' stroke='%239AA7BD' stroke-linecap='round'/%3E%3Cpath d='m8.5 16.4 2.2 2.1 4.8-4.6' stroke='%2342D6B0' stroke-width='2.1' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    --navy-950: #0a1424; --navy-900: #101d32; --navy-800: #172742; --navy-700: #223556; --navy-300: #9aa7bd;
+    --ink: #172338; --muted: #697586; --subtle: #98a2b3; --line: #e3e8ef; --line-strong: #cdd5df; --canvas: #f5f7fa;
+    --accent: #42d6b0; --accent-hover: #2fc49e; --accent-ink: #0b7a5f; --accent-soft: #e5f9f3;
+    --warning: #b9650a; --warning-soft: #fff3e2; --danger: #c8372d; --danger-soft: #fdeceb;
+    --r: 16px; --wrap: 1200px; --ease: cubic-bezier(.2,.7,.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: #fff; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  ul, ol { list-style: none; }
+  button, input, select { font: inherit; color: inherit; }
+  .wrap { max-width: calc(var(--wrap) + 48px); margin: 0 auto; padding: 0 24px; }
+  .num { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  /* кнопки */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 12px; border: 0; cursor: pointer; font-weight: 600; font-size: 15px; white-space: nowrap; transition: background-color .2s, transform .2s, border-color .2s; }
+  .btn:active { transform: translateY(1px); }
+  .btn svg { width: 18px; height: 18px; }
+  .btn--accent { background: var(--accent); color: var(--navy-900); }
+  .btn--accent:hover { background: var(--accent-hover); }
+  .btn--navy { background: var(--navy-900); color: #fff; }
+  .btn--navy:hover { background: var(--navy-700); }
+  .btn--ghost { border: 1.5px solid rgba(255,255,255,.22); color: #fff; background: transparent; }
+  .btn--ghost:hover { border-color: rgba(255,255,255,.5); }
+  .btn--line { border: 1.5px solid var(--line-strong); background: #fff; }
+  .btn--line:hover { border-color: var(--ink); }
+  .btn--sm { height: 40px; padding: 0 16px; font-size: 14px; border-radius: 10px; }
+
+  /* шапка */
+  .hdr { position: sticky; top: 0; z-index: 20; background: rgba(16,29,50,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,.06); }
+  .hdr .wrap { height: 64px; display: flex; align-items: center; gap: 32px; }
+  .logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; font-size: 19px; letter-spacing: -.02em; color: #fff; }
+  .logo b { color: var(--accent); font-weight: 650; }
+  .nav { display: flex; gap: 26px; font-size: 14.5px; color: var(--navy-300); }
+  .nav a:hover { color: #fff; }
+  .hdr .btn { margin-left: auto; }
+
+  /* первый экран */
+  .hero { background: var(--navy-900); color: #fff; position: relative; overflow: hidden; padding: 64px 0 88px; }
+  .hero::before { content: ""; position: absolute; inset: 0; opacity: .07; background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: linear-gradient(to bottom, #000, transparent 85%); mask-image: linear-gradient(to bottom, #000, transparent 85%); }
+  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.02fr 1fr; gap: 48px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--navy-300); }
+  .pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .hero h1 { font-size: clamp(34px, 4.6vw, 54px); line-height: 1.08; letter-spacing: -.03em; font-weight: 650; margin-top: 22px; text-wrap: balance; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .lead { font-size: 18px; color: var(--navy-300); margin-top: 20px; max-width: 520px; }
+  .hero__cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+  .hero__note { margin-top: 18px; font-size: 13px; color: var(--navy-300); max-width: 460px; }
+
+  /* калькулятор */
+  .calc { background: #fff; color: var(--ink); border-radius: 20px; box-shadow: 0 40px 80px -30px rgba(0,0,0,.55); overflow: hidden; }
+  .calc__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .calc__top b { color: var(--ink); font-weight: 600; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 7px; white-space: nowrap; }
+  .tag--warn { background: var(--warning-soft); color: var(--warning); }
+  .tag--ok { background: var(--accent-soft); color: var(--accent-ink); }
+  .tag--danger { background: var(--danger-soft); color: var(--danger); }
+  .calc__body { padding: 20px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fld { display: block; }
+  .fld span { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .fld input, .fld select { width: 100%; height: 46px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 12px; font-size: 15px; font-weight: 600; background: #fff; outline: none; transition: border-color .2s; appearance: none; -webkit-appearance: none; }
+  .fld select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 20px, calc(100% - 13px) 20px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
+  .fld input:focus, .fld select:focus { border-color: var(--accent-ink); }
+  .fld--full { grid-column: 1 / -1; }
+  .res { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .res__row { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--line); gap: 1px; }
+  .res__row div { background: var(--canvas); padding: 12px 14px; }
+  .res__row small { display: block; font-size: 11.5px; color: var(--muted); }
+  .res__row b { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+  .res__sum { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 14px; }
+  .res__sum small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .res__sum strong { font-size: 30px; font-weight: 700; letter-spacing: -.03em; color: var(--navy-900); white-space: nowrap; line-height: 1.1; }
+  .res__msg { padding: 14px; font-size: 14px; color: var(--muted); }
+  .calc .btn { width: 100%; margin-top: 14px; }
+  .calc__fine { margin-top: 10px; font-size: 11.5px; color: var(--subtle); text-align: center; }
+
+  /* факты */
+  .facts { border-bottom: 1px solid var(--line); }
+  .facts .wrap { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .facts .wrap > div { padding: 30px 24px; border-left: 1px solid var(--line); }
+  .facts .wrap > div:first-child { border-left: 0; padding-left: 0; }
+  .facts b { display: block; font-size: 34px; font-weight: 700; letter-spacing: -.03em; color: var(--navy-900); line-height: 1.15; }
+  .facts span { font-size: 14px; color: var(--muted); }
+  .facts small { display: block; font-size: 11.5px; color: var(--subtle); margin-top: 4px; }
+
+  /* секции */
+  .s { padding: 96px 0; }
+  .s--canvas { background: var(--canvas); }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-ink); }
+  .h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.12; letter-spacing: -.025em; font-weight: 650; margin-top: 10px; max-width: 720px; text-wrap: balance; }
+  .s__lead { color: var(--muted); font-size: 17px; margin-top: 14px; max-width: 640px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+  .card { border: 1px solid var(--line); border-radius: var(--r); background: #fff; padding: 26px; }
+  .card .ic { width: 42px; height: 42px; border-radius: 11px; background: var(--canvas); display: grid; place-items: center; color: var(--navy-700); }
+  .card .ic svg { width: 21px; height: 21px; }
+  .card h3 { font-size: 17px; font-weight: 650; margin-top: 18px; letter-spacing: -.01em; }
+  .card p { color: var(--muted); font-size: 14.5px; margin-top: 8px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; counter-reset: s; }
+  .step { background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 26px; position: relative; }
+  .step::before { counter-increment: s; content: "0" counter(s); position: absolute; top: 24px; right: 24px; font-size: 13px; font-weight: 700; color: var(--subtle); }
+  .step .ic { width: 40px; height: 40px; border-radius: 11px; background: var(--navy-900); color: #fff; display: grid; place-items: center; }
+  .step .ic svg { width: 19px; height: 19px; }
+  .step h3 { font-size: 17px; font-weight: 650; margin-top: 18px; }
+  .step p { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+
+  /* продукт */
+  .prod { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+  .checks { margin-top: 24px; display: grid; gap: 12px; }
+  .checks li { display: flex; gap: 10px; font-size: 15px; color: var(--navy-700); }
+  .checks svg { width: 18px; height: 18px; color: var(--accent-ink); flex: none; margin-top: 2px; }
+  .shot { border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 30px 60px -30px rgba(16,29,50,.3); overflow: hidden; }
+  .shot__bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .shot__body { padding: 20px; }
+  .shot__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .shot__head small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  .shot__head b { display: block; font-size: 16px; margin-top: 2px; }
+  .shot__head span { font-size: 13px; color: var(--muted); }
+  .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 16px; }
+  .kv div { background: #fff; padding: 11px 13px; }
+  .kv small { display: block; font-size: 11.5px; color: var(--muted); }
+  .kv b { font-size: 14.5px; font-weight: 650; }
+  .kv em { display: block; font-style: normal; font-size: 11px; color: var(--subtle); }
+  .docs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .docs span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); border-radius: 9px; padding: 7px 11px; }
+  .docs span.on { background: var(--navy-900); color: #fff; border-color: var(--navy-900); }
+  .docs svg { width: 14px; height: 14px; }
+
+  /* тарифы */
+  .plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 44px; }
+  .plan { border: 1px solid var(--line); border-radius: var(--r); background: #fff; padding: 24px; display: flex; flex-direction: column; }
+  .plan--hl { background: var(--navy-900); color: #fff; border-color: var(--navy-900); position: relative; }
+  .plan h3 { font-size: 16px; font-weight: 650; }
+  .plan .tl { font-size: 13px; color: var(--muted); margin-top: 4px; min-height: 40px; }
+  .plan--hl .tl { color: var(--navy-300); }
+  .plan .pr { font-size: 32px; font-weight: 700; letter-spacing: -.03em; margin-top: 14px; }
+  .plan .pr small { font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .plan--hl .pr small { color: var(--navy-300); }
+  .plan ul { margin: 18px 0 22px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 9px; font-size: 14px; }
+  .plan--hl ul { border-top-color: rgba(255,255,255,.12); }
+  .plan li { display: flex; gap: 8px; }
+  .plan li::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); flex: none; margin-top: 8px; }
+  .plan .btn { margin-top: auto; width: 100%; }
+  .badge { position: absolute; top: -11px; left: 24px; background: var(--accent); color: var(--navy-900); font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 7px; }
+  .note { font-size: 13px; color: var(--subtle); margin-top: 18px; }
+
+  /* вопросы */
+  .faq { display: grid; grid-template-columns: 1fr 1.6fr; gap: 56px; }
+  .faq__list { border-top: 1px solid var(--line-strong); }
+  .faq details { border-bottom: 1px solid var(--line-strong); }
+  .faq summary { list-style: none; cursor: pointer; padding: 22px 44px 22px 0; position: relative; font-size: 17px; font-weight: 600; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::before, .faq summary::after { content: ""; position: absolute; right: 8px; top: 50%; width: 14px; height: 2px; background: var(--ink); border-radius: 2px; transition: transform .25s var(--ease); }
+  .faq summary::after { transform: rotate(90deg); }
+  .faq details[open] summary::after { transform: rotate(0); }
+  .faq details p { color: var(--muted); padding: 0 44px 22px 0; }
+
+  /* финал */
+  .final { background: var(--navy-900); color: #fff; border-radius: 28px; padding: 56px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; position: relative; overflow: hidden; }
+  .final::after { content: ""; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(66,214,176,.22), transparent); }
+  .final > * { position: relative; z-index: 1; }
+  .final h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.12; letter-spacing: -.025em; font-weight: 650; }
+  .final p { color: var(--navy-300); margin-top: 14px; }
+  .final__cta { display: grid; gap: 10px; }
+  .final__cta small { color: var(--navy-300); font-size: 13px; }
+
+  footer { padding: 40px 0 56px; font-size: 13.5px; color: var(--muted); }
+  footer .wrap { display: grid; gap: 14px; }
+  footer .row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+  footer .logo { color: var(--navy-900); font-size: 17px; }
+  footer .logo b { color: var(--accent-ink); }
+  footer a { text-decoration: underline; text-underline-offset: 2px; }
+  .disc { font-size: 12.5px; color: var(--subtle); max-width: 820px; }
+
+  /* появление */
+  .js .rv { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+  .js .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .js .rv { opacity: 1; transform: none; transition: none; } }
+
+  @media (max-width: 1000px) {
+    .hero .wrap, .prod, .final, .faq { grid-template-columns: 1fr; }
+    .plans { grid-template-columns: 1fr 1fr; }
+    .nav { display: none; }
+  }
+  @media (max-width: 680px) {
+    .wrap { padding: 0 16px; }
+    .hero { padding: 40px 0 56px; }
+    .hero .lead { font-size: 16px; }
+    .hero__cta .btn { flex: 1 1 auto; }
+    .calc__body { padding: 16px; }
+    .res__row b { font-size: 14px; }
+    .res__sum strong { font-size: 26px; }
+    .facts .wrap, .cards, .steps, .plans { grid-template-columns: 1fr; }
+    .facts .wrap > div, .facts .wrap > div:first-child { border-left: 0; padding: 20px 0; border-top: 1px solid var(--line); }
+    .facts .wrap > div:first-child { border-top: 0; }
+    .res__row div { padding: 10px; }
+    .s { padding: 64px 0; }
+    .final { padding: 30px 22px; border-radius: 22px; }
+    .hdr .btn { padding: 0 12px; }
+    .kv { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="ПлатилЛи — наверх">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2.75H7A2.25 2.25 0 0 0 4.75 5v14A2.25 2.25 0 0 0 7 21.25h10A2.25 2.25 0 0 0 19.25 19V8L14 2.75Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2.75V6.5A1.5 1.5 0 0 0 15.5 8h3.75" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.25 9.25h3.5M8.25 12.5h7.5" stroke="#9AA7BD" stroke-width="1.8" stroke-linecap="round"/><path d="m8.5 16.4 2.2 2.1 4.8-4.6" stroke="#42D6B0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Платил<b>Ли</b></span>
+    </a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#calc">Калькулятор</a><a href="#how">Как работает</a><a href="#pricing">Тарифы</a><a href="#faq">Вопросы</a>
+    </nav>
+    <a class="btn btn--accent btn--sm" href="#access" data-mail="access">Ранний доступ</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="pill"><i></i>Для поставщиков по 44-ФЗ и 223-ФЗ</span>
+        <h1>Заказчик не заплатил в срок? <em>Посчитаем пеню</em> и подготовим претензию</h1>
+        <p class="lead">ПлатилЛи следит за сроками оплаты госконтрактов, находит возможные просрочки и собирает документы с расчётом пени — без Excel и ручных подсчётов.</p>
+        <div class="hero__cta">
+          <a class="btn btn--accent" href="#calc">Проверить контракт <svg viewBox="0 0 20 20" fill="none"><path d="M4 10h11m0 0-4.5-4.5M15 10l-4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn btn--ghost" href="#how">Как это работает</a>
+        </div>
+        <p class="hero__note">Нужны только сумма контракта и дата подписания документа о приёмке. Расчёт выполняется в вашем браузере — данные никуда не отправляются.</p>
+      </div>
+
+      <form class="calc" id="calc" autocomplete="off" aria-label="Калькулятор пени по 44-ФЗ">
+        <div class="calc__top"><span>Калькулятор · <b>44-ФЗ, ч. 5 ст. 34</b></span><span class="tag" id="c-status">—</span></div>
+        <div class="calc__body">
+          <div class="grid2">
+            <label class="fld fld--full"><span>Сумма к оплате, ₽</span><input name="amount" inputmode="decimal" value="1 240 000"></label>
+            <label class="fld"><span>Приёмка подписана</span><input name="accepted" type="date" value="2026-10-02"></label>
+            <label class="fld"><span>Дата расчёта</span><input name="asof" type="date"></label>
+            <label class="fld fld--full"><span>Срок оплаты</span>
+              <select name="term">
+                <option value="7">7 рабочих дней — общий случай (извещение с 01.05.2022)</option>
+                <option value="10">10 рабочих дней — приёмка без ЕИС, казначейское сопровождение</option>
+                <option value="15">15 рабочих дней — извещение с 01.01 по 30.04.2022</option>
+                <option value="20">20 рабочих дней — приёмка без ЕИС и гостайна</option>
+              </select>
+            </label>
+          </div>
+          <div class="res" aria-live="polite">
+            <div class="res__row">
+              <div><small>Срок оплаты</small><b class="num" id="c-due">—</b></div>
+              <div><small>Дней просрочки</small><b class="num" id="c-days">—</b></div>
+              <div><small>Ключевая ставка</small><b class="num" id="c-rate">—</b></div>
+            </div>
+            <div class="res__sum">
+              <small id="c-formula">—</small>
+              <strong class="num" id="c-sum">—</strong>
+            </div>
+          </div>
+          <a class="btn btn--navy" href="#access" data-mail="claim">Получить претензию бесплатно</a>
+          <p class="calc__fine">Предварительный расчёт. Не является юридической консультацией.</p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="facts">
+    <div class="wrap">
+      <div class="rv"><b>7 рабочих дней</b><span>предельный срок оплаты по 44-ФЗ после подписания приёмки</span></div>
+      <div class="rv"><b>1/300</b><span>ключевой ставки ЦБ — пеня заказчика за каждый день просрочки</span></div>
+      <div class="rv"><b>4 млрд ₽</b><span>жалобы малого бизнеса на неоплату госкомпаниями в 2025 году</span><small>в 2024 — 1,5 млрд ₽, по данным BFM.ru</small></div>
+    </div>
+  </div>
+
+  <section class="s">
+    <div class="wrap">
+      <p class="eyebrow rv">Проблема</p>
+      <h2 class="h2 rv">Деньги по исполненному контракту не приходят сами по себе</h2>
+      <p class="s__lead rv">Поставщик исполнил обязательства и подписал приёмку. Дальше начинается ожидание — и ручная проверка, кто и когда должен заплатить.</p>
+      <div class="cards">
+        <div class="card rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div><h3>Десятки контрактов в работе</h3><p>У каждого — свой заказчик, своя дата приёмки и свой срок. Таблица в Excel перестаёт успевать за потоком.</p></div>
+        <div class="card rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h3>Сроки в рабочих днях</h3><p>Срок по 44-ФЗ считается в рабочих днях от подписания приёмки. Праздники и переносы выходных легко упустить.</p></div>
+        <div class="card rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Пеню почти никто не требует</h3><p>Не знают, как посчитать, или боятся испортить отношения. В итоге заказчик платит, когда удобно ему.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s s--canvas" id="how">
+    <div class="wrap">
+      <p class="eyebrow rv">Как работает</p>
+      <h2 class="h2 rv">Три шага от контракта до претензии</h2>
+      <p class="s__lead rv">Сервис не обещает «найти деньги» — он даёт порядок: видно, по каким контрактам пора действовать и на каком основании.</p>
+      <ol class="steps">
+        <li class="step rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M12 11v6M9 14h6"/></svg></div><h3>Добавьте контракты</h3><p>Вручную, по номеру или импортом CSV из вашей учётной системы. Сервис подсветит, каких данных не хватает.</p></li>
+        <li class="step rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><h3>Получайте уведомления</h3><p>Срок считается по закону или контракту с учётом производственного календаря. Истёк — пришло уведомление.</p></li>
+        <li class="step rv"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="m9 15 2 2 4-4"/></svg></div><h3>Скачайте документы</h3><p>Напоминание, претензия и расчёт пени собираются из данных контракта — в DOCX для правки и PDF для отправки.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="s">
+    <div class="wrap prod">
+      <div>
+        <p class="eyebrow rv">Карточка контракта</p>
+        <h2 class="h2 rv">Каждый вывод сервиса можно проверить</h2>
+        <p class="s__lead rv">Исходные значения, применённое правило, ставка ЦБ и формула — на одном экране. Если данных не хватает, сервис так и пишет, а не подставляет сумму.</p>
+        <ul class="checks rv">
+          <li><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 10.2 2.3 2.3 4.7-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>44-ФЗ: 7, 10, 15 или 20 рабочих дней в зависимости от условий закупки</li>
+          <li><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 10.2 2.3 2.3 4.7-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>223-ФЗ: срок для субъектов МСП и срок по положению о закупке</li>
+          <li><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 10.2 2.3 2.3 4.7-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Частичные оплаты, история ключевой ставки, ст. 395 ГК РФ</li>
+          <li><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 10.2 2.3 2.3 4.7-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Статус «Оплачено» — только после того, как вы отметили поступление</li>
+        </ul>
+      </div>
+      <div class="shot rv" aria-hidden="true">
+        <div class="shot__bar"><span>Мои контракты / <b style="color:var(--ink)">№ 0362300012426000148</b></span><span class="tag tag--warn">Тестовые данные</span></div>
+        <div class="shot__body">
+          <div class="shot__head">
+            <div><small>Контракт · 44-ФЗ</small><b>Ремонт кровли здания школы</b><span>МАОУ «Средняя школа № 12»</span></div>
+            <span class="tag tag--danger">Возможная просрочка</span>
+          </div>
+          <div class="kv">
+            <div><small>Сумма к оплате</small><b class="num">1 240 000,00 ₽</b></div>
+            <div><small>Приёмка подписана</small><b class="num">02.10.2026</b></div>
+            <div><small>Ожидаемый срок оплаты</small><b class="num">до 13.10.2026</b><em>7 рабочих дней, ч. 13.1 ст. 34</em></div>
+            <div><small>Пеня на 26.10.2026</small><b class="num" style="color:var(--danger)">7 522,67 ₽</b><em>13 дн. × 1/300 × 14 %</em></div>
+          </div>
+          <div class="docs">
+            <span><svg viewBox="0 0 16 16" fill="none"><path d="M9.5 1.5h-5A1.5 1.5 0 0 0 3 3v10a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 13V5L9.5 1.5Z" stroke="currentColor" stroke-width="1.3"/></svg>Напоминание</span>
+            <span class="on"><svg viewBox="0 0 16 16" fill="none"><path d="M9.5 1.5h-5A1.5 1.5 0 0 0 3 3v10a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 13V5L9.5 1.5Z" stroke="currentColor" stroke-width="1.3"/></svg>Претензия.docx</span>
+            <span><svg viewBox="0 0 16 16" fill="none"><path d="M9.5 1.5h-5A1.5 1.5 0 0 0 3 3v10a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 13V5L9.5 1.5Z" stroke="currentColor" stroke-width="1.3"/></svg>Расчёт пени</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s s--canvas" id="pricing">
+    <div class="wrap">
+      <p class="eyebrow rv">Тарифы</p>
+      <h2 class="h2 rv">Одна взысканная пеня окупает год подписки</h2>
+      <p class="s__lead rv">Пеня по контракту на 1 млн ₽ за месяц просрочки — около 14 000 ₽. Это больше годовой стоимости любого тарифа для одной компании.</p>
+      <div class="plans">
+        <div class="plan rv"><h3>Диагностика</h3><p class="tl">Бесплатная проверка нескольких контрактов</p><p class="pr">0 ₽</p><ul><li>До 3 контрактов</li><li>Срок оплаты и предварительная пеня</li><li>Черновики документов</li></ul><a class="btn btn--line" href="#access" data-mail="plan:Диагностика">Попробовать</a></div>
+        <div class="plan rv"><h3>Мониторинг</h3><p class="tl">Регулярный контроль сроков оплаты</p><p class="pr">1 490 ₽ <small>/ мес</small></p><ul><li>До 25 контрактов</li><li>Ежедневная перепроверка статусов</li><li>Уведомления на e-mail</li><li>Импорт из CSV</li></ul><a class="btn btn--line" href="#access" data-mail="plan:Мониторинг">Выбрать</a></div>
+        <div class="plan plan--hl rv"><span class="badge">Популярный</span><h3>Компания</h3><p class="tl">Для компании с потоком госконтрактов</p><p class="pr">3 990 ₽ <small>/ мес</small></p><ul><li>До 150 контрактов</li><li>Всё из «Мониторинга»</li><li>Отчёты и выгрузка реестра</li><li>Хронология и документы по каждому контракту</li></ul><a class="btn btn--accent" href="#access" data-mail="plan:Компания">Выбрать</a></div>
+        <div class="plan rv"><h3>Профессиональный</h3><p class="tl">Для юристов и бухгалтеров с несколькими организациями</p><p class="pr">9 900 ₽ <small>/ мес</small></p><ul><li>До 1 000 контрактов</li><li>До 10 организаций</li><li>Приоритетная поддержка</li></ul><a class="btn btn--line" href="#access" data-mail="plan:Профессиональный">Выбрать</a></div>
+      </div>
+      <p class="note rv">Стартовые цены. До коммерческого запуска условия могут измениться; оформленные подписки сохранят цену до конца оплаченного периода.</p>
+    </div>
+  </section>
+
+  <section class="s" id="faq">
+    <div class="wrap faq">
+      <div><p class="eyebrow rv">Вопросы</p><h2 class="h2 rv">Частые вопросы</h2></div>
+      <div class="faq__list">
+        <details class="rv"><summary>Законно ли требовать пеню с госзаказчика?</summary><p>Да. Часть 5 статьи 34 44-ФЗ прямо обязывает заказчика платить пеню за просрочку оплаты: 1/300 ключевой ставки ЦБ от неоплаченной суммы за каждый день, начиная со дня после истечения срока. Это условие есть в каждом контракте по 44-ФЗ.</p></details>
+        <details class="rv"><summary>Не испорчу ли я отношения с заказчиком?</summary><p>Решаете вы. Сервис предлагает мягкую последовательность: сначала запрос о статусе оплаты, затем напоминание и только потом претензия. Часто достаточно первого письма с точной датой и суммой.</p></details>
+        <details class="rv"><summary>Откуда сервис берёт данные?</summary><p>Ключевая ставка — из официального веб-сервиса Банка России, производственный календарь встроен на 2024–2027 годы. Данные контракта вы вводите сами или загружаете из CSV; подключение к ЕИС — в разработке. Каждое значение помечается источником.</p></details>
+        <details class="rv"><summary>Это юридическая консультация?</summary><p>Нет. Расчёты предварительные, документы формируются как черновики. Статус «Возможная просрочка» не подтверждает задолженность: сервис видит только поступления, которые вы отметили. Перед отправкой претензии проверьте данные.</p></details>
+        <details class="rv"><summary>Когда можно начать пользоваться?</summary><p>Сервис готовится к запуску. Оставьте заявку на ранний доступ — первым пользователям подготовим первую претензию бесплатно и сохраним стартовую цену.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="access" style="padding-top:0">
+    <div class="wrap">
+      <div class="final rv">
+        <div>
+          <h2>Ранний доступ и первая претензия — бесплатно</h2>
+          <p>Напишите номер контракта или просто ИНН вашей компании. Посчитаем просрочку и подготовим претензию с расчётом пени — вы решите, отправлять ли её.</p>
+        </div>
+        <div class="final__cta">
+          <a class="btn btn--accent" href="#access" data-mail="access">Написать на почту</a>
+          <small>Ответим в течение рабочего дня: <span data-email></span></small>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2.75H7A2.25 2.25 0 0 0 4.75 5v14A2.25 2.25 0 0 0 7 21.25h10A2.25 2.25 0 0 0 19.25 19V8L14 2.75Z" stroke="#101D32" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2.75V6.5A1.5 1.5 0 0 0 15.5 8h3.75" stroke="#101D32" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.25 9.25h3.5M8.25 12.5h7.5" stroke="#101D32" stroke-width="1.8" stroke-linecap="round"/><path d="m8.5 16.4 2.2 2.1 4.8-4.6" stroke="#42D6B0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Платил<b>Ли</b></span></span>
+      <span>Сайт собран студией <a href="https://sobranoweba.ru/" target="_blank" rel="noopener">«Собрано»</a></span>
+    </div>
+    <p class="disc">Сулеменев Арсений Александрович, ИНН 663230947420 · <span data-email></span>. Расчёты на сайте выполняются в браузере и носят предварительный характер; они не являются юридической консультацией. Ключевая ставка — по данным Банка России, проверено на 27.10.2026; производственный календарь — по постановлениям Правительства РФ на 2025–2027 годы.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var EMAIL = "senyasule@yandex.ru";
+  document.documentElement.classList.add("js");
+  if (window.top !== window.self) window.top.location = window.self.location.href;
+
+  // Ключевая ставка ЦБ (с даты → %) и производственный календарь — из модуля правил ПлатилЛи
+  var RATES = [["2025-06-09", 20], ["2025-07-28", 18], ["2025-09-15", 17], ["2025-10-27", 16.5], ["2025-12-22", 16],
+    ["2026-02-16", 15.5], ["2026-03-23", 15], ["2026-04-27", 14.5], ["2026-06-22", 14.25], ["2026-07-27", 14]];
+  var HOLIDAYS = {
+    "2025-01-01":1,"2025-01-02":1,"2025-01-03":1,"2025-01-06":1,"2025-01-07":1,"2025-01-08":1,"2025-05-01":1,"2025-05-02":1,"2025-05-08":1,"2025-05-09":1,"2025-06-12":1,"2025-06-13":1,"2025-11-03":1,"2025-11-04":1,"2025-12-31":1,
+    "2026-01-01":1,"2026-01-02":1,"2026-01-05":1,"2026-01-06":1,"2026-01-07":1,"2026-01-08":1,"2026-01-09":1,"2026-02-23":1,"2026-03-09":1,"2026-05-01":1,"2026-05-11":1,"2026-06-12":1,"2026-11-04":1,"2026-12-31":1,
+    "2027-01-01":1,"2027-01-04":1,"2027-01-05":1,"2027-01-06":1,"2027-01-07":1,"2027-01-08":1,"2027-02-22":1,"2027-02-23":1,"2027-03-08":1,"2027-05-03":1,"2027-05-10":1,"2027-06-14":1,"2027-11-04":1,"2027-11-05":1,"2027-12-31":1
+  };
+  var WORKING_WEEKENDS = { "2025-11-01": 1, "2027-02-20": 1 };
+  var CAL_FROM = 2025, CAL_TO = 2027;
+
+  var iso = function (d) { return d.toISOString().slice(0, 10); };
+  var parse = function (s) { var d = new Date(s + "T00:00:00Z"); return isNaN(d) ? null : d; };
+  var addDays = function (d, n) { var x = new Date(d); x.setUTCDate(x.getUTCDate() + n); return x; };
+  var ru = function (d) { return d.toISOString().slice(0, 10).split("-").reverse().join("."); };
+  var isWorking = function (d) {
+    var k = iso(d), wd = d.getUTCDay();
+    if (WORKING_WEEKENDS[k]) return true;
+    return wd !== 0 && wd !== 6 && !HOLIDAYS[k];
+  };
+  var rateOn = function (d) {
+    var k = iso(d), r = null;
+    for (var i = 0; i < RATES.length; i++) if (RATES[i][0] <= k) r = RATES[i][1];
+    return r;
+  };
+  var rub = function (n) { return n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₽"; };
+  var dayWord = function (n) { var a = n % 10, b = n % 100; return a === 1 && b !== 11 ? "день" : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? "дня" : "дней"; };
+
+  var f = document.getElementById("calc");
+  var el = function (id) { return document.getElementById(id); };
+  f.asof.value = iso(new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())));
+  var last = null;
+
+  function show(status, cls, due, days, rate, formula, sum) {
+    var s = el("c-status"); s.textContent = status; s.className = "tag " + cls;
+    el("c-due").textContent = due; el("c-days").textContent = days; el("c-rate").textContent = rate;
+    el("c-formula").textContent = formula; el("c-sum").textContent = sum;
+  }
+
+  function calc() {
+    last = null;
+    var amount = parseFloat(String(f.amount.value).replace(/\s/g, "").replace(",", "."));
+    var acc = parse(f.accepted.value), asof = parse(f.asof.value), term = +f.term.value;
+    if (!(amount > 0) || !acc || !asof) return show("Нужны данные", "tag--warn", "—", "—", "—", "Укажите сумму и дату подписания приёмки", "—");
+    if (acc.getUTCFullYear() < CAL_FROM || asof.getUTCFullYear() > CAL_TO) return show("Нужны данные", "tag--warn", "—", "—", "—", "Календарь встроен на " + CAL_FROM + "–" + CAL_TO + " годы", "—");
+    if (asof < acc) return show("Нужны данные", "tag--warn", "—", "—", "—", "Дата расчёта раньше даты приёмки", "—");
+    // срок начинает течь на следующий день после подписания приёмки (ст. 191 ГК РФ)
+    var d = acc, n = 0;
+    while (n < term) { d = addDays(d, 1); if (isWorking(d)) n++; }
+    var due = d;
+    var days = Math.max(0, Math.round((asof - due) / 864e5));
+    var rate = rateOn(asof);
+    if (rate === null) return show("Нужны данные", "tag--warn", "до " + ru(due), "—", "—", "Нет ставки ЦБ на дату расчёта", "—");
+    var rateTxt = String(rate).replace(".", ",") + " %";
+    if (days === 0) return show("Срок не истёк", "tag--ok", "до " + ru(due), "0", rateTxt, "Пеня начнёт начисляться с " + ru(addDays(due, 1)), "0,00 ₽");
+    var pen = Math.round(amount * rate / 100 / 300 * days * 100) / 100;
+    last = { amount: amount, acc: ru(acc), due: ru(due), days: days, rate: rateTxt, pen: rub(pen), asof: ru(asof) };
+    show("Возможная просрочка", "tag--danger", "до " + ru(due), String(days), rateTxt,
+      "Пеня = " + rub(amount).replace(" ₽", "") + " × 1/300 × " + rateTxt + " × " + days + " " + dayWord(days), rub(pen));
+  }
+  f.addEventListener("input", calc);
+  f.addEventListener("submit", function (e) { e.preventDefault(); });
+  f.amount.addEventListener("blur", function () {
+    var v = parseFloat(String(f.amount.value).replace(/\s/g, "").replace(",", "."));
+    if (v > 0) f.amount.value = v.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+  });
+  calc();
+
+  // Письма с готовой темой: ранний доступ, тариф или претензия по рассчитанному контракту
+  function mail(kind) {
+    var subject = "ПлатилЛи — ранний доступ", body = "Здравствуйте! Хочу получить ранний доступ к ПлатилЛи.\n\nКомпания / ИНН: \nТелефон: ";
+    if (kind.indexOf("plan:") === 0) { subject = "ПлатилЛи — тариф «" + kind.slice(5) + "»"; body = "Здравствуйте! Интересует тариф «" + kind.slice(5) + "».\n\nКомпания / ИНН: \nТелефон: "; }
+    if (kind === "claim") {
+      subject = "ПлатилЛи — претензия по контракту";
+      body = "Здравствуйте! Прошу подготовить претензию по контракту.\n\n" + (last
+        ? "Сумма к оплате: " + rub(last.amount) + "\nПриёмка подписана: " + last.acc + "\nСрок оплаты: до " + last.due + "\nПросрочка на " + last.asof + ": " + last.days + " " + dayWord(last.days) + "\nПредварительная пеня: " + last.pen + "\n"
+        : "") + "\nНомер контракта: \nЗаказчик: \nКомпания / ИНН: \nТелефон: ";
+    }
+    location.href = "mailto:" + EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  }
+  document.querySelectorAll("[data-mail]").forEach(function (a) {
+    a.addEventListener("click", function (e) { e.preventDefault(); mail(a.getAttribute("data-mail")); });
+  });
+  document.querySelectorAll("[data-email]").forEach(function (s) { s.textContent = EMAIL; });
+
+  // Плавное появление блоков
+  var rv = document.querySelectorAll(".rv");
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -8% 0px" });
+    rv.forEach(function (x) { io.observe(x); });
+  } else rv.forEach(function (x) { x.classList.add("in"); });
+})();
+</script>
+</body>
+</html>
