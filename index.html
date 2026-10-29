@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UWqk+cz+FZp4qLkytGVJDpbCxOVcMrYAIXUBZd4i/d4='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-TM6HZPwS+FNgaX+6skKgOZ1/J8SKffPLtAlLhHR2310='; style-src 'unsafe-inline'; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>ПлатилЛи — пеня по госконтракту за 10 секунд</title>
 <meta name="description" content="Заказчик по 44-ФЗ не заплатил в срок? ПлатилЛи посчитает срок оплаты по производственному календарю, пеню по 1/300 ключевой ставки и подготовит претензию.">
@@ -25,7 +25,7 @@
   body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: #fff; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
   a { color: inherit; text-decoration: none; }
   ul, ol { list-style: none; }
-  button, input, select { font: inherit; color: inherit; }
+  button, input, select, textarea { font: inherit; color: inherit; }
   .wrap { max-width: calc(var(--wrap) + 48px); margin: 0 auto; padding: 0 24px; }
   .num { font-variant-numeric: tabular-nums; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -79,7 +79,9 @@
   .fld span { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
   .fld input, .fld select { width: 100%; height: 46px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 12px; font-size: 15px; font-weight: 600; background: #fff; outline: none; transition: border-color .2s; appearance: none; -webkit-appearance: none; }
   .fld select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 20px, calc(100% - 13px) 20px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
-  .fld input:focus, .fld select:focus { border-color: var(--accent-ink); }
+  .fld input:focus, .fld select:focus, .fld textarea:focus { border-color: var(--accent-ink); }
+  .fld textarea { width: 100%; min-height: 84px; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 15px; background: #fff; outline: none; resize: vertical; transition: border-color .2s; }
+  .fld.bad input { border-color: var(--danger); }
   .fld--full { grid-column: 1 / -1; }
   .res { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   .res__row { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--line); gap: 1px; }
@@ -182,6 +184,27 @@
   .final p { color: var(--navy-300); margin-top: 14px; }
   .final__cta { display: grid; gap: 10px; }
   .final__cta small { color: var(--navy-300); font-size: 13px; }
+
+  /* окно заявки */
+  .lead { width: min(460px, calc(100% - 32px)); margin: auto; border: 0; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 40px 80px -30px rgba(0,0,0,.55); }
+  .lead::backdrop { background: rgba(10,20,36,.6); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .lead__box { display: grid; gap: 14px; padding: 26px 24px 24px; position: relative; }
+  .lead h3 { font-size: 22px; line-height: 1.2; letter-spacing: -.02em; font-weight: 650; padding-right: 32px; }
+  .lead__sub { font-size: 14px; color: var(--muted); white-space: pre-line; margin-top: -6px; }
+  .lead__sub:empty { display: none; }
+  .lead__x { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--canvas); cursor: pointer; font-size: 20px; line-height: 1; color: var(--muted); }
+  .lead__x:hover { color: var(--ink); }
+  .lead__hp { position: absolute; left: -9999px; }
+  .lead__ok { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+  .lead__ok input { margin-top: 2px; accent-color: var(--accent-ink); flex: none; }
+  .lead__ok.bad { color: var(--danger); }
+  .lead .btn { width: 100%; }
+  .lead .btn:disabled { opacity: .6; cursor: default; }
+  .lead__st { font-size: 13.5px; color: var(--danger); text-align: center; }
+  .lead__st:empty { display: none; }
+  .lead__done { padding: 36px 24px 28px; text-align: center; display: grid; gap: 10px; }
+  .lead__done b { font-size: 20px; letter-spacing: -.02em; }
+  .lead__done p { color: var(--muted); font-size: 14.5px; }
 
   footer { padding: 40px 0 56px; font-size: 13.5px; color: var(--muted); }
   footer .wrap { display: grid; gap: 14px; }
@@ -389,13 +412,28 @@
           <p>Напишите номер контракта или просто ИНН вашей компании. Посчитаем просрочку и подготовим претензию с расчётом пени — вы решите, отправлять ли её.</p>
         </div>
         <div class="final__cta">
-          <a class="btn btn--accent" href="#access" data-mail="access">Написать на почту</a>
-          <small>Ответим в течение рабочего дня: <span data-email></span></small>
+          <a class="btn btn--accent" href="#access" data-mail="access">Оставить заявку</a>
+          <small>Ответим в течение рабочего дня</small>
         </div>
       </div>
     </div>
   </section>
 </main>
+
+<dialog class="lead" id="lead" aria-labelledby="lead-title">
+  <form class="lead__box" id="lead-form" novalidate>
+    <button class="lead__x" type="button" aria-label="Закрыть">×</button>
+    <h3 id="lead-title">Ранний доступ</h3>
+    <p class="lead__sub" id="lead-sub"></p>
+    <label class="lead__hp" aria-hidden="true">Не заполняйте<input name="website" tabindex="-1" autocomplete="off"></label>
+    <label class="fld"><span>Как вас зовут</span><input name="name" autocomplete="name" maxlength="100" placeholder="Имя"></label>
+    <label class="fld"><span>Телефон или Telegram</span><input name="contact" autocomplete="tel" maxlength="100" placeholder="+7 900 000-00-00"></label>
+    <label class="fld"><span>Компания, ИНН или комментарий</span><textarea name="message" rows="3" maxlength="2000"></textarea></label>
+    <label class="lead__ok"><input type="checkbox" name="consent"><span>Согласен на обработку имени и контакта, чтобы со мной связались по этой заявке</span></label>
+    <button class="btn btn--accent" type="submit">Отправить заявку</button>
+    <p class="lead__st" role="status" aria-live="polite"></p>
+  </form>
+</dialog>
 
 <footer>
   <div class="wrap">
@@ -411,6 +449,8 @@
 (function () {
   "use strict";
   var EMAIL = "senyasule@yandex.ru";
+  // Google Apps Script (sobrano/tools/telegram-leads.gs), пересылает заявки в Telegram. Пусто — откроется письмо.
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbwxt695TMEJis5lL3rBPPfHCQgLHG_ZI2ie85LQIvIaLlwgsBlZEqlyB0b7uRoIUAY1AQ/exec";
   document.documentElement.classList.add("js");
   if (window.top !== window.self) window.top.location = window.self.location.href;
 
@@ -482,20 +522,66 @@
   });
   calc();
 
-  // Письма с готовой темой: ранний доступ, тариф или претензия по рассчитанному контракту
-  function mail(kind) {
-    var subject = "ПлатилЛи — ранний доступ", body = "Здравствуйте! Хочу получить ранний доступ к ПлатилЛи.\n\nКомпания / ИНН: \nТелефон: ";
-    if (kind.indexOf("plan:") === 0) { subject = "ПлатилЛи — тариф «" + kind.slice(5) + "»"; body = "Здравствуйте! Интересует тариф «" + kind.slice(5) + "».\n\nКомпания / ИНН: \nТелефон: "; }
+  // Заявка с готовой темой: ранний доступ, тариф или претензия по рассчитанному контракту
+  var dlg = el("lead"), lf = el("lead-form"), req = null;
+  function request(kind) {
+    var r = { topic: "Ранний доступ", details: "", hint: "Компания или ИНН — по желанию" };
+    if (kind.indexOf("plan:") === 0) r.topic = "Тариф «" + kind.slice(5) + "»";
     if (kind === "claim") {
-      subject = "ПлатилЛи — претензия по контракту";
-      body = "Здравствуйте! Прошу подготовить претензию по контракту.\n\n" + (last
-        ? "Сумма к оплате: " + rub(last.amount) + "\nПриёмка подписана: " + last.acc + "\nСрок оплаты: до " + last.due + "\nПросрочка на " + last.asof + ": " + last.days + " " + dayWord(last.days) + "\nПредварительная пеня: " + last.pen + "\n"
-        : "") + "\nНомер контракта: \nЗаказчик: \nКомпания / ИНН: \nТелефон: ";
+      r.topic = "Претензия по контракту";
+      r.hint = "Номер контракта, заказчик, ИНН вашей компании";
+      if (last) r.details = "Сумма к оплате: " + rub(last.amount) + "\nПриёмка подписана: " + last.acc + "\nСрок оплаты: до " + last.due +
+        "\nПросрочка на " + last.asof + ": " + last.days + " " + dayWord(last.days) + "\nПредварительная пеня: " + last.pen;
     }
-    location.href = "mailto:" + EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    return r;
+  }
+  function mail(r) {
+    var body = "Здравствуйте! " + r.topic + ".\n\n" + (r.details ? r.details + "\n\n" : "") + "Компания / ИНН: \nТелефон: ";
+    location.href = "mailto:" + EMAIL + "?subject=" + encodeURIComponent("ПлатилЛи — " + r.topic.toLowerCase()) + "&body=" + encodeURIComponent(body);
+  }
+  function openLead(kind) {
+    req = request(kind);
+    if (!ENDPOINT || !dlg.showModal) return mail(req);
+    el("lead-title").textContent = req.topic;
+    el("lead-sub").textContent = req.details;
+    lf.message.placeholder = req.hint;
+    lf.querySelector(".lead__st").textContent = "";
+    dlg.showModal();
   }
   document.querySelectorAll("[data-mail]").forEach(function (a) {
-    a.addEventListener("click", function (e) { e.preventDefault(); mail(a.getAttribute("data-mail")); });
+    a.addEventListener("click", function (e) { e.preventDefault(); openLead(a.getAttribute("data-mail")); });
+  });
+  lf.querySelector(".lead__x").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  lf.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var st = lf.querySelector(".lead__st"), btn = lf.querySelector("[type=submit]"), ok = true;
+    ["name", "contact"].forEach(function (n) {
+      var bad = lf[n].value.trim().length < 2;
+      lf[n].parentNode.classList.toggle("bad", bad);
+      if (bad && ok) lf[n].focus();
+      ok = ok && !bad;
+    });
+    lf.consent.parentNode.classList.toggle("bad", !lf.consent.checked);
+    if (!ok || !lf.consent.checked) return;
+    btn.disabled = true; st.textContent = "";
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // без предварительной CORS-проверки
+      body: JSON.stringify({ site: "platil", topic: req.topic, details: req.details, website: lf.website.value,
+        name: lf.name.value.trim(), contact: lf.contact.value.trim(), message: lf.message.value.trim(), page: location.href })
+    }).then(function (r) { return r.ok ? r.json() : {}; }).then(function (j) {
+      if (!j.ok) throw new Error();
+      lf.reset();
+      lf.hidden = true;
+      var done = document.createElement("div");
+      done.className = "lead__done";
+      done.innerHTML = "<b>Заявка отправлена</b><p>Свяжемся с вами в течение рабочего дня.</p>";
+      dlg.appendChild(done);
+      dlg.addEventListener("close", function () { done.remove(); lf.hidden = false; }, { once: true });
+    }).catch(function () {
+      st.textContent = "Не получилось отправить. Напишите нам: " + EMAIL;
+    }).then(function () { btn.disabled = false; });
   });
   document.querySelectorAll("[data-email]").forEach(function (s) { s.textContent = EMAIL; });
 
