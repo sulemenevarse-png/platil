@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-TM6HZPwS+FNgaX+6skKgOZ1/J8SKffPLtAlLhHR2310='; style-src 'unsafe-inline'; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BwiSR5KlMPjIPM23Ij4GZTdDyDH5d+xKj/M/cT24xqM='; style-src 'unsafe-inline'; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>ПлатилЛи — пеня по госконтракту за 10 секунд</title>
 <meta name="description" content="Заказчик по 44-ФЗ не заплатил в срок? ПлатилЛи посчитает срок оплаты по производственному календарю, пеню по 1/300 ключевой ставки и подготовит претензию.">
@@ -199,7 +199,9 @@
   .lead__ok input { margin-top: 2px; accent-color: var(--accent-ink); flex: none; }
   .lead__ok.bad { color: var(--danger); }
   .lead .btn { width: 100%; }
-  .lead .btn:disabled { opacity: .6; cursor: default; }
+  .lead .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .lead__ok a, .lead__pol a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+  .lead__pol { font-size: 12px; color: var(--subtle); text-align: center; margin-top: -4px; }
   .lead__st { font-size: 13.5px; color: var(--danger); text-align: center; }
   .lead__st:empty { display: none; }
   .lead__done { padding: 36px 24px 28px; text-align: center; display: grid; gap: 10px; }
@@ -429,8 +431,9 @@
     <label class="fld"><span>Как вас зовут</span><input name="name" autocomplete="name" maxlength="100" placeholder="Имя"></label>
     <label class="fld"><span>Телефон или Telegram</span><input name="contact" autocomplete="tel" maxlength="100" placeholder="+7 900 000-00-00"></label>
     <label class="fld"><span>Компания, ИНН или комментарий</span><textarea name="message" rows="3" maxlength="2000"></textarea></label>
-    <label class="lead__ok"><input type="checkbox" name="consent"><span>Согласен на обработку имени и контакта, чтобы со мной связались по этой заявке</span></label>
-    <button class="btn btn--accent" type="submit">Отправить заявку</button>
+    <label class="lead__ok"><input type="checkbox" name="consent"><span>Даю <a href="consent.html" target="_blank">согласие на обработку персональных данных</a></span></label>
+    <button class="btn btn--accent" type="submit" disabled>Отправить заявку</button>
+    <p class="lead__pol">Как мы храним и защищаем данные — в <a href="privacy.html" target="_blank">политике конфиденциальности</a></p>
     <p class="lead__st" role="status" aria-live="polite"></p>
   </form>
 </dialog>
@@ -439,6 +442,7 @@
   <div class="wrap">
     <div class="row">
       <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2.75H7A2.25 2.25 0 0 0 4.75 5v14A2.25 2.25 0 0 0 7 21.25h10A2.25 2.25 0 0 0 19.25 19V8L14 2.75Z" stroke="#101D32" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2.75V6.5A1.5 1.5 0 0 0 15.5 8h3.75" stroke="#101D32" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.25 9.25h3.5M8.25 12.5h7.5" stroke="#101D32" stroke-width="1.8" stroke-linecap="round"/><path d="m8.5 16.4 2.2 2.1 4.8-4.6" stroke="#42D6B0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Платил<b>Ли</b></span></span>
+      <span><a href="privacy.html">Политика конфиденциальности</a> · <a href="consent.html">Согласие на обработку данных</a></span>
       <span>Сайт собран студией <a href="https://sobranoweba.ru/" target="_blank" rel="noopener">«Собрано»</a></span>
     </div>
     <p class="disc">Сулеменев Арсений Александрович, ИНН 663230947420 · <span data-email></span>. Расчёты на сайте выполняются в браузере и носят предварительный характер; они не являются юридической консультацией. Ключевая ставка — по данным Банка России, проверено на 27.10.2026; производственный календарь — по постановлениям Правительства РФ на 2025–2027 годы.</p>
@@ -551,6 +555,9 @@
   document.querySelectorAll("[data-mail]").forEach(function (a) {
     a.addEventListener("click", function (e) { e.preventDefault(); openLead(a.getAttribute("data-mail")); });
   });
+  // Отправить заявку можно только после согласия на обработку персональных данных
+  function syncLead() { lf.querySelector("[type=submit]").disabled = !lf.consent.checked; }
+  lf.consent.addEventListener("change", syncLead);
   lf.querySelector(".lead__x").addEventListener("click", function () { dlg.close(); });
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
   lf.addEventListener("submit", function (e) {
@@ -581,7 +588,7 @@
       dlg.addEventListener("close", function () { done.remove(); lf.hidden = false; }, { once: true });
     }).catch(function () {
       st.textContent = "Не получилось отправить. Напишите нам: " + EMAIL;
-    }).then(function () { btn.disabled = false; });
+    }).then(syncLead);
   });
   document.querySelectorAll("[data-email]").forEach(function (s) { s.textContent = EMAIL; });
 
